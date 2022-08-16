@@ -3,6 +3,7 @@ module.exports = {
   publicPath: './', 
   // 取消.map文件
   productionSourceMap: false, 
+  outputDir: 'docs',
 
   //链式webpack配置
   chainWebpack: (config) => {
