@@ -1,0 +1,8 @@
+#浏览器兼容设置#
+#npx browserslist查看被兼容的浏览器
+
+[production staging]  #生产环境
+ie >=9                #大小写都可以
+
+[development]         #开发环境
+last 1 chrome version

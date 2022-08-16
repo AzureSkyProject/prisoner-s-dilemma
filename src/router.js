@@ -1,0 +1,24 @@
+import Vue from 'vue'
+import Router from 'vue-router'
+import Home from './views/Home/Home.vue'
+import Single from './views/Single/index.vue'
+
+Vue.use(Router)
+
+export default new Router({
+  routes: [
+    {
+      path: '/',
+      name: 'home',
+      component: Home,
+      redirect: { name: 'single' },
+      children: [
+        {
+          path: 'single',
+          name: 'single',
+          component: Single
+        }
+      ]
+    }
+  ]
+})
