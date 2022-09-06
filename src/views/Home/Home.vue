@@ -7,6 +7,13 @@
 <script>
 export default {
   name: 'home',
+  mounted(){
+    if ((navigator.userAgent.match(/(iPhone|iPod|Android|ios|iOS|iPad|Backerry|WebOS|Symbian|Windows Phone|Phone)/i))) {
+      this.$router.push({
+        name: 'blank'
+      })
+    }
+  }
 }
 </script>
 

@@ -5,7 +5,7 @@
     <div class="mans-zone" :style="{ width: 600 + 'px', height: 720 + 'px' }">
       <!-- :style="{ left: man.position[0] + 'px', top: man.position[1] + 'px' }" -->
       <!-- :style="{ left: man.margin[0] + 'px', top: man.margin[1] + 'px' }" -->
-      <TransitionGroup tag="ul" :name="ifAnimation ? 'fade' : 'noanime'" class="container">
+      <!-- <TransitionGroup tag="ul" :name="ifAnimation ? 'fade' : 'noanime'" class="container">
         <el-tooltip
           class="item" 
           effect="light" 
@@ -15,7 +15,6 @@
           :key="man.id"
         >
           <div class="out-z" :ref="'ref' + man.id">
-            <!-- <Transition name="fade" mode="out-in"></Transition> -->
             <div class="blur-z" v-show="man.showblur"></div>
             <div class="ctn-z">
               <div 
@@ -28,7 +27,7 @@
             </div>
           </div>
         </el-tooltip>
-      </TransitionGroup>
+      </TransitionGroup> -->
     </div>
     <div class="param-z" v-show="showParams">
       <div class="param-d-left">
@@ -102,7 +101,7 @@
       <el-row>
         <el-button type="primary" size="mini" @click="closeParams()">调节参数</el-button>
         <el-button style="margin-left: 20px;" type="primary" size="mini" @click="closeChart()">{{ showChart ? '关闭' : '显示' }}图表</el-button>
-        <el-button style="margin-left: 20px;" type="primary" size="mini" @click="gotoCalc()">数值模拟</el-button>
+        <el-button style="margin-left: 20px;" type="primary" size="mini" @click="gotoSingle()">动画模拟</el-button>
       </el-row>
     </div>
     <TlTiltLine v-show="showtiltline" :linesCoor="linesCoor"></TlTiltLine>
@@ -131,7 +130,7 @@ export default {
       checkStepDay: 5, // 淘汰间隔/天
       dieOutManNum: 45, // 一次淘汰多少人
       ifDieOutHalf: true, // 一次淘汰一半
-      ifAnimation: true, // 是否开启动画
+      ifAnimation: false, // 是否开启动画
       blurStepTime: 0, // 交互间隔/毫秒
       animateStep: 0, // 长动画间隔/毫秒
       dieOuStep: 0, // 长动画间隔/毫秒
@@ -151,12 +150,12 @@ export default {
       },
       scoreMap: {
         blue: {
-          blue: 3,
+          blue: 4,
           red: 0,
         },
         red: {
-          blue: 5,
-          red: 1,
+          blue: 8,
+          red: 0,
         },
         black: 2
       },
@@ -177,10 +176,11 @@ export default {
       linesCoor: [],
       idstart: 0,
       showParams: true,
-      showChart: false,
+      showChart: true,
       totalScore: 0, // 集体总分
       totalScoreWithDayMark: [{
         dayNow: 0,
+        typeManNum: {},
         value: [0, 0],
       }], // 作画数据
       running: false, // 是否正在模拟
@@ -189,13 +189,13 @@ export default {
   watch: {
     typeManNum: {
       handler(newval){
-        if(newval.blue + newval.red + newval.black > 100){
-          this.$alert('总人数请勿多于100人', '提示', {
-            confirmButtonText: '确定',
-            callback: action => {}
-          });
-          return;
-        }
+        // if(newval.blue + newval.red + newval.black > 100){
+        //   this.$alert('总人数请勿多于100人', '提示', {
+        //     confirmButtonText: '确定',
+        //     callback: action => {}
+        //   });
+        //   return;
+        // }
         if(this.ifDieOutHalf){
           this.dieOutManNum = Math.floor((newval.blue + newval.red + newval.black) / 2)
         }
@@ -223,6 +223,11 @@ export default {
   created(){
     this.refreshWindowData();
     this.resetSimu();
+    this.totalScoreWithDayMark = [{
+      dayNow: 0,
+      typeManNum: this.getNowTypeManNum(),
+      value: [0, 0],
+    }]
   },
   async mounted(){
     theChart = echarts.init(document.getElementById('chart-d'));
@@ -274,52 +279,29 @@ export default {
           while(condi){
             let other = mans[this.limitRandom(mans.length) - 1];
             if(other.interoperable){
-              // console.log(this.$refs['ref' + man.id])
-              let mandom = this.$refs['ref' + man.id][0].getBoundingClientRect()
-              let otherdom = this.$refs['ref' + other.id][0].getBoundingClientRect()
-              let coors = {
-                start: {
-                  x: mandom.left + mandom.width / 2, 
-                  y: mandom.top + mandom.height / 2
-                },
-                end: {
-                  x: otherdom.left + otherdom.width / 2, 
-                  y: otherdom.top + otherdom.height / 2
-                },
-              }
-              this.linesCoor = [coors];
-              man.showblur = true;
-              // other.showblur = true;
               man.score += scoreMap[man.mansType][other.mansType]
               other.score += scoreMap[other.mansType][man.mansType]
-
               this.totalScore += scoreMap[man.mansType][other.mansType]
               this.totalScore += scoreMap[other.mansType][man.mansType]
-              await utils.sleep(blurStepTime);
-              man.showblur = false;
-              // other.showblur = false;
-              this.linesCoor = [];
               break;
             }
           }
         } else {
-          man.showblur = true;
           man.score += scoreMap[man.mansType]
           this.totalScore += scoreMap[man.mansType]
-          await utils.sleep(blurStepTime);
-          man.showblur = false;
         }
       }
       mans.sort((a, b) => {
         return b.score - a.score;
       })
       this.dayNow++;
+      let typeManNum = this.getNowTypeManNum();
       this.totalScoreWithDayMark.push({
         dayNow: this.dayNow,
+        typeManNum: typeManNum,
         value: [this.dayNow, this.totalScore],
       });
       this.darwChart();
-      await utils.sleep(this.animateStep);
       await this.checkDieOut();
     },
     async checkDieOut(){
@@ -329,29 +311,14 @@ export default {
         let dieOutManNum = this.dieOutManNum;
         for (let i = 0; i < dieOutManNum; i++) {
           mans.pop();
-          await utils.sleep(this.dieOuStep);
         }
         for (let i = 0; i < dieOutManNum; i++) {
           let man = mans[i]
           let childScore = Math.round(man.score / 2)
           man.score -= childScore
           let newman = this.createMan(this.getManUid(), man.interoperable, man.mansType, [this.limitRandom(this.windowData.limit), this.limitRandom(this.windowData.limit)], childScore);
-          newman.showblur = true;
           mans.push(newman)
-          await utils.sleep(this.dieOuStep);
-          newman.showblur = false;
         }
-        // for (let i = 0; i < dieOutManNum; i++) {
-        //   let man = mans[2 * i]
-        //   // let childScore = man.score
-        //   let childScore = Math.round(man.score / 2)
-        //   man.score -= childScore
-        //   let newman = this.createMan(this.getManUid(), man.interoperable, man.mansType, [this.limitRandom(this.windowData.limit), this.limitRandom(this.windowData.limit)], childScore);
-        //   newman.showblur = true;
-        //   mans.splice(2 * i + 1, 0, newman)
-        //   await utils.sleep(this.dieOuStep);
-        //   newman.showblur = false;
-        // }
       }
     },
     getManUid(){
@@ -364,9 +331,9 @@ export default {
       this.showChart = !this.showChart;
       theChart && theChart.resize();
     },
-    gotoCalc(){
+    gotoSingle(){
       this.$router.push({
-        name: 'calc'
+        name: 'single'
       })
     },
     darwChart(){
@@ -378,9 +345,14 @@ export default {
         tooltip: {
           trigger: 'axis',
           formatter: function (params) {
-            params = params[0];
+            let para = params[0];
+            let data = para.data;
             // console.log(params);
-            return `第${params.data.dayNow + 1}天总分: ${params.value[1]}分`;
+            return `第${data.dayNow + 1}天总分: ${para.value[1]}分<br>
+            合作者人数: ${data.typeManNum.blue}人<br>
+            背叛者人数: ${data.typeManNum.red}人<br>
+            孤立者人数: ${data.typeManNum.black}人
+            `;
           },
           axisPointer: {
             animation: false
@@ -446,6 +418,22 @@ export default {
         }
         await this.moveOneDay();
       }
+      this.running = false;
+      console.log(this.totalScoreWithDayMark);
+    },
+    getNowTypeManNum(){
+      let mansType = this.mansType;
+      let mans = this.mans;
+      let typeManNum = {
+        blue: 0,
+        red: 0,
+        black: 0,
+      };
+      for (let i = 0; i < mans.length; i++) {
+        const man = mans[i];
+        typeManNum[man.mansType]++;
+      }
+      return typeManNum;
     },
   }
 }
@@ -461,7 +449,7 @@ export default {
   color: #4A96CF;
   .day-z{
     @h: 60px;
-    .absolute(40px, 0, '', 0);
+    .absolute(10px, 0, '', 0);
     width: 200px;
     height: @h;
     line-height: @h;
@@ -571,9 +559,9 @@ export default {
 }
 
 .chart-z{
-  .absolute(80px, '', '', 20px);
-  width: 600px;  
-  height: 400px;
+  .absolute(80px, 20px, '', '');
+  width: 1230px;  
+  height: 800px;
   // background: url('./imgs/paper.jpeg') no-repeat center center;
   background-color: rgb(230, 230, 230);
   border: 2px solid black;
